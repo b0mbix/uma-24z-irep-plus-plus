@@ -5,30 +5,31 @@ from pprint import pprint
 import pandas as pd
 
 class IRepPlusPlus:
-    def __init__(self):
-        pass
+    def __init__(self, max_iterations: int = 10, max_conditions_in_rule: int = 5, test_percentage: float = 2/3):
+        self.max_iterations = max_iterations
+        self.test_percentage = test_percentage
+        self.max_conditions_in_rule = max_conditions_in_rule
 
-    def fit(self, X, y):
+    def fit(self, x_original, y_original):
         """Fit the IRep++ algorithm to the data."""
         self.rule_sets = []
-        X_train, X_prune, y_train, y_prune = train_test_split(X, y, test_size=0.33)
 
-        uncovered = X_train.copy()
-        uncovered_labels = y_train.copy()
-        max_iterations = 10
         iterations = 0
+        x = x_original.copy()
+        y = y_original.copy()
 
-        while len(uncovered) > 0 and iterations != max_iterations:
-            best_rule = self.learn_rule(uncovered, uncovered_labels)
+        while len(x) > 0 and iterations != self.max_iterations:
+            X_train, X_prune, y_train, y_prune = train_test_split(x, y, test_size=self.test_percentage, random_state=1)
+            best_rule = self.learn_rule(X_train, y_train)
             pruned_rule = self.prune_rule(best_rule, X_prune, y_prune)
 
-            if self.evaluate_rule(pruned_rule, uncovered, uncovered_labels):
+            if self.evaluate_rule(pruned_rule, X_train, y_train):
                 self.rule_sets.append(pruned_rule)
-                covered_indices = self.apply_rule(pruned_rule, uncovered)
+                covered_indices = self.apply_rule(pruned_rule, x)
                 if sum(covered_indices) == 0:
                     break
-                uncovered = uncovered[~covered_indices]
-                uncovered_labels = uncovered_labels[~covered_indices]
+                x = x[~covered_indices]
+                y = y[~covered_indices]
             else:
                 break
             iterations += 1
@@ -36,7 +37,7 @@ class IRepPlusPlus:
 
     def learn_rule(self, X, y):
         best_rule = []
-        for _ in range(5): # todo
+        for _ in range(self.max_conditions_in_rule):
             best_accuracy = 0
             best_condition = None
             for feature in X.columns:
@@ -44,11 +45,15 @@ class IRepPlusPlus:
                 for threshold in thresholds:
                     for operator in ['<=', '>']:
                         condition = {"feature": feature, "threshold": threshold, "operator": operator}
-                        accuracy = accuracy_score(y, self.apply_rule(best_rule + [condition], X))
+                        accuracy = accuracy_score(y, self.apply_rule([condition], X))
                         if accuracy > best_accuracy:
                             best_accuracy = accuracy
                             best_condition = condition
-            best_rule.append(best_condition)
+            if best_condition not in best_rule:
+                best_rule.append(best_condition)
+            covered_indices = self.apply_rule(best_rule, X)
+            X = X[~covered_indices]
+            y = y[~covered_indices]
         return best_rule
 
     def prune_rule(self, rule, X, y):
@@ -104,23 +109,3 @@ class IRepPlusPlus:
         for rule in self.rule_sets:
             predictions = predictions | self.apply_rule(rule, X)
         return predictions
-
-
-
-# X = pd.DataFrame({
-#     'Feature 1': [5, 1, 3, 4, 5],
-#     'Feature 2': [5, 1, 3, 2, 7],
-#     'Feature 3': [3, 1, 2, 3, 5],
-#     'Feature 4': [2, 1, 1, 4, 3],
-#     'Feature 5': [4, 1, 6, 7, 8]
-# })
-
-# y = np.array([1, 1, 0, 0, 1])
-
-# model = IRepPlusPlus()
-# model.fit(X, y)
-
-# pprint(model.rule_sets)
-
-# predictions = model.predict(X)
-# print("Predictions:", predictions)
