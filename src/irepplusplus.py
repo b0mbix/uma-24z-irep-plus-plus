@@ -1,14 +1,27 @@
 import numpy as np
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
-from pprint import pprint
-import pandas as pd
+import logging
+
 
 class IRepPlusPlus:
-    def __init__(self, max_iterations: int = 10, max_conditions_in_rule: int = 5, test_percentage: float = 2/3):
+    def __init__(self, max_iterations: int = 10, max_conditions_in_rule: int = 5, test_percentage: float = 2/3, random_state: int = None, verbose_level: int = 0):
         self.max_iterations = max_iterations
         self.test_percentage = test_percentage
         self.max_conditions_in_rule = max_conditions_in_rule
+        self.random_state = random_state
+        
+        self.logger = logging.getLogger(__name__)
+        if verbose_level == 2:
+            self.logger.setLevel(logging.DEBUG)
+        elif verbose_level == 1:
+            self.logger.setLevel(logging.INFO)
+        else:
+            self.logger.setLevel(logging.WARNING)
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+        self.logger.addHandler(handler)
+        self.logger.info(f"Initialized IRepPlusPlus with max_iterations={self.max_iterations}, max_conditions_in_rule={self.max_conditions_in_rule}, test_percentage={self.test_percentage:.2f}")
 
     def fit(self, x_original, y_original):
         """Fit the IRep++ algorithm to the data."""
@@ -17,13 +30,18 @@ class IRepPlusPlus:
         iterations = 0
         x = x_original.copy()
         y = y_original.copy()
+        bad_rules_count = 0
 
-        while len(x) > 0 and iterations != self.max_iterations:
-            X_train, X_prune, y_train, y_prune = train_test_split(x, y, test_size=self.test_percentage, random_state=1)
+        while bad_rules_count != 5 and iterations != self.max_iterations:
+            X_train, X_prune, y_train, y_prune = train_test_split(x, y, test_size=self.test_percentage, random_state=self.random_state)
             best_rule = self.learn_rule(X_train, y_train)
             pruned_rule = self.prune_rule(best_rule, X_prune, y_prune)
+            self.logger.debug(f'\n---------------------------- ITERATION {iterations} -----------------------')
+            self.logger.debug(f'Grow rule: {best_rule}')
+            self.logger.debug(f'Pruned rule: {pruned_rule}')
 
-            if self.evaluate_rule(pruned_rule, X_train, y_train):
+            if self.accept_rule(pruned_rule, x, y):
+                bad_rules_count = 0
                 self.rule_sets.append(pruned_rule)
                 covered_indices = self.apply_rule(pruned_rule, x)
                 if sum(covered_indices) == 0:
@@ -31,11 +49,13 @@ class IRepPlusPlus:
                 x = x[~covered_indices]
                 y = y[~covered_indices]
             else:
-                break
+                bad_rules_count += 1
+                self.logger.warning(f'Bad rule - {pruned_rule} ({bad_rules_count=})')
             iterations += 1
-            pprint(self.rule_sets)
+        self.logger.debug(f'Ending, {self.rule_sets=}')
 
     def learn_rule(self, X, y):
+        """Grow rule """
         best_rule = []
         for _ in range(self.max_conditions_in_rule):
             best_accuracy = 0
@@ -94,14 +114,13 @@ class IRepPlusPlus:
         for condition in rule:
             covered = covered & self.apply_condition(X, condition)
         return covered
-    
+
     def apply_rule_set(self, rule_set, X):
         covered = np.zeros(len(X), dtype=bool)
         for condition in rule_set:
             covered = covered | self.apply_condition(X, condition)
-
         return covered
-    
+
     def predict(self, X):
         """Predict labels for the input data using the learned rules."""
         predictions = np.zeros(len(X), dtype=int)
@@ -109,3 +128,7 @@ class IRepPlusPlus:
         for rule in self.rule_sets:
             predictions = predictions | self.apply_rule(rule, X)
         return predictions
+
+    def accept_rule(self, rule, X, y):
+        covered = self.apply_rule(rule, X)
+        return sum(y[covered] == 1) > sum(y[covered] == 0)
