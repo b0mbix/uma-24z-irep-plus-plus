@@ -78,16 +78,10 @@ class IRepPlusPlus:
 
     def prune_rule(self, rule, X, y):
         """Prune the rule using a pruning set."""
-        best_rule = rule
-        best_accuracy = self.evaluate_rule(rule, X, y)
-
         pruned_rule = rule[:-1]
-        accuracy = self.evaluate_rule(pruned_rule, X, y)
-
-        if accuracy > best_accuracy:
-            best_accuracy = accuracy
-            best_rule = pruned_rule
-        return best_rule
+        if self.evaluate_rule(pruned_rule, X, y) > self.evaluate_rule(rule, X, y):
+            return pruned_rule
+        return rule
 
     def evaluate_rule(self, rule, X, y):
         """Evaluate a rule by checking its accuracy on the given data."""
