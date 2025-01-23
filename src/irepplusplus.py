@@ -44,8 +44,6 @@ class IRepPlusPlus:
                 bad_rules_count = 0
                 self.rule_sets.append(pruned_rule)
                 covered_indices = self.apply_rule(pruned_rule, x)
-                if sum(covered_indices) == 0:
-                    break
                 x = x[~covered_indices]
                 y = y[~covered_indices]
             else:

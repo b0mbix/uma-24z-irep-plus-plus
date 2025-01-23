@@ -1,167 +1,125 @@
 import numpy as np
-import pandas as pd
-from typing import List, Tuple, Optional
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
+import logging
 
 
 class IRep:
-    def __init__(self):
-        self.rules: List[List[Tuple[str, any]]] = []
+    def __init__(self, max_iterations: int = 10, max_conditions_in_rule: int = 5, test_percentage: float = 2/3, random_state: int = None, verbose_level: int = 0):
+        self.max_iterations = max_iterations
+        self.test_percentage = test_percentage
+        self.max_conditions_in_rule = max_conditions_in_rule
+        self.random_state = random_state
+        
+        self.logger = logging.getLogger(__name__)
+        if verbose_level == 2:
+            self.logger.setLevel(logging.DEBUG)
+        elif verbose_level == 1:
+            self.logger.setLevel(logging.INFO)
+        else:
+            self.logger.setLevel(logging.WARNING)
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+        self.logger.addHandler(handler)
+        self.logger.info(f"Initialized IRepPlusPlus with max_iterations={self.max_iterations}, max_conditions_in_rule={self.max_conditions_in_rule}, test_percentage={self.test_percentage:.2f}")
 
-    def fit(self, train_data: pd.DataFrame, validation_data: pd.DataFrame) -> None:
-        """
-        Trains the IRep algorithm on the input data.
+    def fit(self, x_original, y_original):
+        """Fit the IRep++ algorithm to the data."""
+        self.rule_sets = []
 
-        Args:
-            train_data (pd.DataFrame): Training dataset with features and a 'label' column.
-            validation_data (pd.DataFrame): Validation dataset with features and a 'label' column.
-        """
-        data = train_data.copy()
+        iterations = 0
+        x = x_original.copy()
+        y = y_original.copy()
 
-        while not data.empty:
-            rule = self._grow_rule(data)
+        while iterations != self.max_iterations:
+            X_train, X_prune, y_train, y_prune = train_test_split(x, y, test_size=self.test_percentage, random_state=self.random_state)
+            best_rule = self.learn_rule(X_train, y_train)
+            pruned_rule = self.prune_rule(best_rule, X_prune, y_prune)
+            self.logger.debug(f'\n---------------------------- ITERATION {iterations} -----------------------')
+            self.logger.debug(f'Grow rule: {best_rule}')
+            self.logger.debug(f'Pruned rule: {pruned_rule}')
 
-            if not rule:
+            if self.accept_rule(pruned_rule, X_prune, y_prune):
+                self.rule_sets.append(pruned_rule)
+                covered_indices = self.apply_rule(pruned_rule, x)
+                x = x[~covered_indices]
+                y = y[~covered_indices]
+            else:
+                self.logger.warning(f'Bad rule - {pruned_rule}, ending')
                 break
+            iterations += 1
+        self.logger.debug(f'Ending, {self.rule_sets=}')
 
-            rule = self._prune_rule(rule, validation_data)
-            self.rules.append(rule)
+    def learn_rule(self, X, y):
+        """Grow rule """
+        best_rule = []
+        for _ in range(self.max_conditions_in_rule):
+            best_accuracy = 0
+            best_condition = None
+            for feature in X.columns:
+                thresholds = X[feature].unique()
+                for threshold in thresholds:
+                    for operator in ['<=', '>']:
+                        condition = {"feature": feature, "threshold": threshold, "operator": operator}
+                        accuracy = accuracy_score(y, self.apply_rule([condition], X))
+                        if accuracy > best_accuracy:
+                            best_accuracy = accuracy
+                            best_condition = condition
+            if best_condition not in best_rule:
+                best_rule.append(best_condition)
+            covered_indices = self.apply_rule(best_rule, X)
+            X = X[~covered_indices]
+            y = y[~covered_indices]
+        return best_rule
 
-            covered = data.apply(lambda row: self._rule_matches(rule, row), axis=1)
-            data = data[~covered]
-
-    def predict(self, X: pd.DataFrame) -> List[int]:
-        """
-        Makes predictions based on the trained rules.
-
-        Args:
-            X (pd.DataFrame): Dataset with feature columns.
-
-        Returns:
-            List[int]: Predicted labels (0 or 1).
-        """
-        predictions: List[int] = []
-
-        for _, row in X.iterrows():
-            predictions.append(self._predict_row(row))
-
-        return predictions
-
-    def _predict_row(self, row: pd.Series) -> int:
-        """
-        Makes a prediction for a single data row.
-
-        Args:
-            row (pd.Series): A single row of data.
-
-        Returns:
-            int: Predicted label (0 or 1).
-        """
-        for rule in self.rules:
-            if self._rule_matches(rule, row):
-                return 1
-        return 0
-
-    def _grow_rule(self, train_data: pd.DataFrame) -> List[Tuple[str, any]]:
-        """
-        Grows a single rule by iteratively adding conditions.
-
-        Args:
-            train_data (pd.DataFrame): Training dataset.
-
-        Returns:
-            List[Tuple[str, any]]: A rule as a list of conditions.
-        """
-        rule: List[Tuple[str, any]] = []
-
-        while True:
-            best_condition: Optional[Tuple[str, any]] = None
-            best_accuracy: float = 0
-
-            for feature in train_data.columns[:-1]:
-                for value in train_data[feature].unique():
-                    condition = (feature, value)
-                    accuracy = self._rule_accuracy(rule + [condition], train_data)
-
-                    if accuracy > best_accuracy:
-                        best_condition, best_accuracy = condition, accuracy
-
-            if not best_condition or best_accuracy <= 0:
-                break
-
-            rule.append(best_condition)
-
+    def prune_rule(self, rule, X, y):
+        """Prune the rule using a pruning set."""
+        pruned_rule = rule[:-1]
+        if self.evaluate_rule(pruned_rule, X, y) > self.evaluate_rule(rule, X, y):
+            return pruned_rule
         return rule
 
-    def _prune_rule(self, rule: List[Tuple[str, any]], validation_data: pd.DataFrame) -> List[Tuple[str, any]]:
-        """
-        Prunes a rule to maximize accuracy on the validation dataset.
+    def evaluate_rule(self, rule, X, y):
+        """Evaluate a rule by checking its accuracy on the given data."""
+        covered = np.ones(len(X), dtype=bool)
 
-        Args:
-            rule (List[Tuple[str, any]]): A rule as a list of conditions.
-            validation_data (pd.DataFrame): Validation dataset.
+        for condition in rule:
+            covered = covered & self.apply_condition(X, condition)
 
-        Returns:
-            List[Tuple[str, any]]: The pruned rule.
-        """
-        best_pruned_rule, best_accuracy = rule, self._rule_accuracy(rule, validation_data)
-
-        for i in range(len(rule)):
-            pruned_rule = rule[:i] + rule[i+1:]
-            accuracy = self._rule_accuracy(pruned_rule, validation_data)
-
-            if accuracy > best_accuracy:
-                best_pruned_rule, best_accuracy = pruned_rule, accuracy
-
-        return best_pruned_rule
-
-    def _rule_accuracy(self, rule: List[Tuple[str, any]], data: pd.DataFrame) -> float:
-        """
-        Calculates the accuracy of a rule on a dataset.
-
-        Args:
-            rule (List[Tuple[str, any]]): List of rule conditions.
-            data (pd.DataFrame): Dataset.
-
-        Returns:
-            float: Accuracy of the rule.
-        """
-        if not rule:
+        if len(y[covered]) == 0:
             return 0
+        return accuracy_score(y[covered], np.ones(len(y[covered])))
 
-        covered = data.apply(lambda row: self._rule_matches(rule, row), axis=1)
-        correct = data[covered]['label'] == 1
-        return correct.sum() / max(1, covered.sum())
+    def apply_condition(self, X, condition):
+        """Apply a single condition to the dataset."""
+        feature, threshold, operator = condition['feature'], condition['threshold'], condition['operator']
+        if operator == '<=':
+            return X[feature] <= threshold
+        else:
+            return X[feature] > threshold
 
-    def _rule_matches(self, rule: List[Tuple[str, any]], row: pd.Series) -> bool:
-        """
-        Checks if a data row matches a rule.
+    def apply_rule(self, rule, X):
+        """Apply a rule (with multiple conditions) to the dataset."""
+        covered = np.ones(len(X), dtype=bool)
+        for condition in rule:
+            covered = covered & self.apply_condition(X, condition)
+        return covered
 
-        Args:
-            rule (List[Tuple[str, any]]): List of rule conditions.
-            row (pd.Series): A single row of data.
+    def apply_rule_set(self, rule_set, X):
+        covered = np.zeros(len(X), dtype=bool)
+        for condition in rule_set:
+            covered = covered | self.apply_condition(X, condition)
+        return covered
 
-        Returns:
-            bool: True if the rule matches, False otherwise.
-        """
-        return all(row[feature] == value for feature, value in rule)
+    def predict(self, X):
+        """Predict labels for the input data using the learned rules."""
+        predictions = np.zeros(len(X), dtype=int)
 
+        for rule in self.rule_sets:
+            predictions = predictions | self.apply_rule(rule, X)
+        return predictions
 
-
-# example
-if __name__ == "__main__":
-    data = {
-        'feature1': [1, 1, 0, 0, 1, 0, 1, 0],
-        'feature2': [0, 1, 0, 1, 1, 0, 1, 0],
-        'label': [1, 1, 0, 0, 1, 0, 1, 0]
-    }
-    df = pd.DataFrame(data)
-
-    train_data = df.iloc[:6]
-    validation_data = df.iloc[6:]
-
-    model = IRep()
-    model.fit(train_data, validation_data)
-
-    predictions = model.predict(df[['feature1', 'feature2']])
-    print("Reguły:", model.rules)
-    print("Predykcje:", predictions)
+    def accept_rule(self, rule, x_prune, y_prune):
+        rule_accuracy = self.evaluate_rule(rule, x_prune, y_prune)    
+        baseline_accuracy = accuracy_score(y_prune, np.zeros(len(y_prune)))
+        return rule_accuracy > baseline_accuracy
