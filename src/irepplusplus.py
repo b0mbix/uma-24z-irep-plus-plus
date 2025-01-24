@@ -6,12 +6,12 @@ import math
 
 
 class IRepPlusPlus:
-    def __init__(self, max_iterations: int = 20, max_conditions_in_rule: int = 5, test_percentage: float = 1/3, random_state: int = None, verbose_level: int = 0):
+    def __init__(self, max_iterations: int = 20, max_conditions_in_rule: int = 5, prune_percentage: float = 1/3, random_state: int = None, verbose_level: int = 0):
         self.max_iterations = max_iterations
-        self.test_percentage = test_percentage
+        self.test_percentage = prune_percentage
         self.max_conditions_in_rule = max_conditions_in_rule
         self.random_state = random_state
-        
+
         self.logger = logging.getLogger(__name__)
         if verbose_level == 2:
             self.logger.setLevel(logging.DEBUG)
@@ -42,15 +42,15 @@ class IRepPlusPlus:
         bad_rules_count = 0
 
         while bad_rules_count != 5 and iterations != self.max_iterations and sum(y) != 0:
+            X_train, X_prune, y_train, y_prune = train_test_split(x, y, test_size=self.test_percentage, random_state=self.random_state)
             self.logger.debug(f'---------------------------- ITERATION {iterations} -----------------------')
             self.logger.debug(f'Number of uncovered examples: {sum(y)}, in grow: {sum(y_train)}, in prune: {sum(y_prune)}')
-            X_train, X_prune, y_train, y_prune = train_test_split(x, y, test_size=self.test_percentage, random_state=self.random_state)
             best_rule = self._learn_rule(X_train, y_train)
             pruned_rule = self._prune_rule(best_rule, X_prune, y_prune)
             self.logger.debug(f'Grow rule: {best_rule}')
             self.logger.debug(f'Pruned rule: {pruned_rule}')
 
-            if self._accept_rule(pruned_rule, x, y):
+            if pruned_rule != [] and self._accept_rule(pruned_rule, x, y):
                 bad_rules_count = 0
                 self.rule_sets.append(pruned_rule)
                 covered_indices = self._apply_rule(pruned_rule, x)
@@ -81,7 +81,7 @@ class IRepPlusPlus:
                         if inf_gain > best_gain:
                             best_gain = inf_gain
                             best_condition = condition
-            if best_condition not in rule and best_condition is not None:
+            if best_condition is not None and best_condition not in rule:
                 rule.append(best_condition)
                 covered_indices = self._apply_rule(rule, X)
                 X = X[~covered_indices]
