@@ -127,7 +127,7 @@ class IRep:
         for condition in rule:
             covered = covered & self._apply_condition(X, condition)
         return covered
-    
+
     def _evaluate_rule(self, rule, X, y):
         """Evaluate a rule by checking its accuracy on the given data."""
         covered = np.ones(len(X), dtype=bool)
@@ -140,6 +140,6 @@ class IRep:
         return accuracy_score(y[covered], np.ones(len(y[covered])))
 
     def _accept_rule(self, rule, x_prune, y_prune):
-        rule_accuracy = self._evaluate_rule(rule, x_prune, y_prune)    
+        rule_accuracy = self._evaluate_rule(rule, x_prune, y_prune)
         baseline_accuracy = accuracy_score(y_prune, np.zeros(len(y_prune)))
         return rule_accuracy > baseline_accuracy

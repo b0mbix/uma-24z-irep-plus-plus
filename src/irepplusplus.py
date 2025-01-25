@@ -109,7 +109,7 @@ class IRepPlusPlus:
         p, n = sum(y[potential_coverage] == 1), sum(y[potential_coverage] == 0)
         p0, n0 = sum(y[current_coverage] == 1), sum(y[current_coverage] == 0)
         return self._calculate_information_gain(p, n, p0, n0)
-    
+
     def _prune_information_gain(self, rule, pruned_rule, x, y):
         pruned_covered = self._apply_rule(pruned_rule, x)
         original_covered = self._apply_rule(rule, x)
@@ -136,7 +136,7 @@ class IRepPlusPlus:
         for condition in rule:
             covered = covered & self._apply_condition(X, condition)
         return covered
-    
+
     def _evaluate_rule(self, rule, X, y):
         """Evaluate a rule by checking its accuracy on the given data."""
         covered = np.ones(len(X), dtype=bool)

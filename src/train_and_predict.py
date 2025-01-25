@@ -4,7 +4,7 @@ from ripper import Ripper
 from sklearn.model_selection import train_test_split
 
 
-def run_irepplusplus(data, seed, test_size=0.33):
+def run_irepplusplus(data, seed, test_size=0.33, prune_percentage=1/3):
     X_train, X_test, y_train, y_test = train_test_split(
         data.drop(columns=['label']),
         data['label'],
@@ -12,7 +12,7 @@ def run_irepplusplus(data, seed, test_size=0.33):
         random_state=seed
     )
 
-    model = IRepPlusPlus(verbose_level=-1)
+    model = IRepPlusPlus(verbose_level=-1, prune_percentage=prune_percentage)
     model.fit(X_train, y_train)
 
     predictions = model.predict(X_test)

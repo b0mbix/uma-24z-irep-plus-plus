@@ -106,7 +106,7 @@ class Ripper:
         p, n = sum(y[covered] == 1), sum(y[covered] == 0)
         if p + n == 0:
             return 0
-        return (p-n) / (p+n)        
+        return (p-n) / (p+n)
 
     def _learn_information_gain(self, current_rule, new_literal, x, y):
         current_coverage = self._apply_rule(current_rule, x)
@@ -134,7 +134,7 @@ class Ripper:
         for condition in rule:
             covered = covered & self._apply_condition(X, condition)
         return covered
-    
+
     def _evaluate_rule(self, rule, X, y):
         """Evaluate a rule by checking its accuracy on the given data."""
         covered = np.ones(len(X), dtype=bool)
@@ -147,5 +147,5 @@ class Ripper:
         return accuracy_score(y[covered], np.ones(len(y[covered])))
 
     def _accept_rule(self, rule, x_prune, y_prune):
-        rule_accuracy = self._evaluate_rule(rule, x_prune, y_prune)    
+        rule_accuracy = self._evaluate_rule(rule, x_prune, y_prune)
         return rule_accuracy >= 0.5
