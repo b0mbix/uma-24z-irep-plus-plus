@@ -1,5 +1,6 @@
 from irepplusplus import IRepPlusPlus
 from irep import IRep
+from ripper import Ripper
 from get_data import read_csv_to_dataframe
 from sklearn.model_selection import train_test_split
 import sys
@@ -19,7 +20,7 @@ def irepplusplus(X_train, X_test, y_train, y_test):
     correct_predictions = sum(predictions == y_test)
     final_accuracy = correct_predictions / len(y_test)
     print(f'Final accuracy: {final_accuracy}')
-    
+
 
 def irep(X_train, X_test, y_train, y_test):
     irep_model = IRep(verbose_level=2)
@@ -31,8 +32,20 @@ def irep(X_train, X_test, y_train, y_test):
     print(f'Final accuracy: {final_accuracy}')
 
 
+def ripper(X_train, X_test, y_train, y_test):
+    ripper_model = Ripper(verbose_level=2)
+    ripper_model.fit(X_train, y_train)
+
+    predictions = ripper_model.predict(X_test)
+    correct_predictions = sum(predictions == y_test)
+    final_accuracy = correct_predictions / len(y_test)
+    print(f'Final accuracy: {final_accuracy}')
+
+
 if __name__ == '__main__':
     X_train, X_test, y_train, y_test = get_sets(sys.argv[1])
-    irepplusplus(X_train, X_test, y_train, y_test)
-
     irep(X_train, X_test, y_train, y_test)
+
+    ripper(X_train, X_test, y_train, y_test)
+    
+    irepplusplus(X_train, X_test, y_train, y_test)
