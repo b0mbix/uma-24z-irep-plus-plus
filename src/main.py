@@ -8,11 +8,12 @@ import sys
 
 def get_sets(file_path):
     data = read_csv_to_dataframe(file_path)
+    return data
+
+
+def irepplusplus(data):
     X_train, X_test, y_train, y_test = train_test_split(data.drop(columns=['label']), data['label'], test_size=0.33, random_state=42)
-    return X_train, X_test, y_train, y_test
-
-
-def irepplusplus(X_train, X_test, y_train, y_test):
+    
     model = IRepPlusPlus(verbose_level=2)
     model.fit(X_train, y_train)
 
@@ -22,7 +23,9 @@ def irepplusplus(X_train, X_test, y_train, y_test):
     print(f'Final accuracy: {final_accuracy}')
 
 
-def irep(X_train, X_test, y_train, y_test):
+def irep(data):
+    X_train, X_test, y_train, y_test = train_test_split(data.drop(columns=['label']), data['label'], test_size=0.33, random_state=42)
+    
     irep_model = IRep(verbose_level=2)
     irep_model.fit(X_train, y_train)
     
@@ -32,7 +35,9 @@ def irep(X_train, X_test, y_train, y_test):
     print(f'Final accuracy: {final_accuracy}')
 
 
-def ripper(X_train, X_test, y_train, y_test):
+def ripper(data):
+    X_train, X_test, y_train, y_test = train_test_split(data.drop(columns=['label']), data['label'], test_size=0.33, random_state=42)
+    
     ripper_model = Ripper(verbose_level=2)
     ripper_model.fit(X_train, y_train)
 
@@ -43,9 +48,8 @@ def ripper(X_train, X_test, y_train, y_test):
 
 
 if __name__ == '__main__':
-    X_train, X_test, y_train, y_test = get_sets(sys.argv[1])
-    irep(X_train, X_test, y_train, y_test)
+    data = get_sets(sys.argv[1])    
 
-    ripper(X_train, X_test, y_train, y_test)
-    
-    irepplusplus(X_train, X_test, y_train, y_test)
+    irepplusplus(data.copy())
+    ripper(data.copy())
+    irep(data.copy())
