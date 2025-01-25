@@ -7,22 +7,24 @@ import math
 
 class IRepPlusPlus:
     def __init__(self, max_iterations: int = 20, max_conditions_in_rule: int = 5, prune_percentage: float = 1/3, random_state: int = None, verbose_level: int = 0):
-        self.max_iterations = max_iterations
-        self.test_percentage = prune_percentage
-        self.max_conditions_in_rule = max_conditions_in_rule
-        self.random_state = random_state
+        self._max_iterations = max_iterations
+        self._test_percentage = prune_percentage
+        self._max_conditions_in_rule = max_conditions_in_rule
+        self._random_state = random_state
 
-        self.logger = logging.getLogger(__name__)
+        self._logger = logging.getLogger(__name__)
         if verbose_level == 2:
-            self.logger.setLevel(logging.DEBUG)
+            self._logger.setLevel(logging.DEBUG)
         elif verbose_level == 1:
-            self.logger.setLevel(logging.INFO)
+            self._logger.setLevel(logging.INFO)
+        elif verbose_level == 0:
+            self._logger.setLevel(logging.WARNING)
         else:
-            self.logger.setLevel(logging.WARNING)
+            self._logger.setLevel(logging.ERROR)
         handler = logging.StreamHandler()
         handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-        self.logger.addHandler(handler)
-        self.logger.info(f"Initialized IRepPlusPlus with max_iterations={self.max_iterations}, max_conditions_in_rule={self.max_conditions_in_rule}, test_percentage={self.test_percentage:.2f}")
+        self._logger.addHandler(handler)
+        self._logger.info(f"Initialized IRepPlusPlus with max_iterations={self._max_iterations}, max_conditions_in_rule={self._max_conditions_in_rule}, test_percentage={self._test_percentage:.2f}")
 
     def predict(self, X):
         """Predict labels for the input data using the learned rules."""
@@ -41,14 +43,14 @@ class IRepPlusPlus:
         y = y_original.copy()
         bad_rules_count = 0
 
-        while bad_rules_count != 5 and iterations != self.max_iterations and sum(y) != 0:
-            X_train, X_prune, y_train, y_prune = train_test_split(x, y, test_size=self.test_percentage, random_state=self.random_state)
-            self.logger.debug(f'---------------------------- ITERATION {iterations} -----------------------')
-            self.logger.debug(f'Number of uncovered examples: {sum(y)}, in grow: {sum(y_train)}, in prune: {sum(y_prune)}')
+        while bad_rules_count != 5 and iterations != self._max_iterations and sum(y) != 0:
+            X_train, X_prune, y_train, y_prune = train_test_split(x, y, test_size=self._test_percentage, random_state=self._random_state)
+            self._logger.debug(f'---------------------------- ITERATION {iterations} -----------------------')
+            self._logger.debug(f'Number of uncovered examples: {sum(y)}, in grow: {sum(y_train)}, in prune: {sum(y_prune)}')
             best_rule = self._learn_rule(X_train, y_train)
             pruned_rule = self._prune_rule(best_rule, X_prune, y_prune)
-            self.logger.debug(f'Grow rule: {best_rule}')
-            self.logger.debug(f'Pruned rule: {pruned_rule}')
+            self._logger.debug(f'Grow rule: {best_rule}')
+            self._logger.debug(f'Pruned rule: {pruned_rule}')
 
             if pruned_rule != [] and self._accept_rule(pruned_rule, x, y):
                 bad_rules_count = 0
@@ -56,12 +58,12 @@ class IRepPlusPlus:
                 covered_indices = self._apply_rule(pruned_rule, x)
                 x = x[~covered_indices]
                 y = y[~covered_indices]
-                self.logger.info(f'Added rule - {pruned_rule}')
+                self._logger.info(f'Added rule - {pruned_rule}')
             else:
                 bad_rules_count += 1
-                self.logger.warning(f'Bad rule - {pruned_rule} ({bad_rules_count=})')
+                self._logger.warning(f'Bad rule - {pruned_rule} ({bad_rules_count=})')
             iterations += 1
-        self.logger.debug(f'Ending, {self.rule_sets=}')
+        self._logger.debug(f'Ending, {self.rule_sets=}')
 
     def _learn_rule(self, x_original, y_original):
         """Grow rule """
@@ -69,7 +71,7 @@ class IRepPlusPlus:
         y = y_original.copy()
         rule = []
         iterations = 0
-        while sum(y) != 0 and iterations != self.max_conditions_in_rule:
+        while sum(y) != 0 and iterations != self._max_conditions_in_rule:
             best_gain = -1
             best_condition = None
             for feature in X.columns:
