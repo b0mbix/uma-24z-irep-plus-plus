@@ -139,4 +139,5 @@ class IRep:
 
     def _accept_rule(self, rule, x_prune, y_prune):
         rule_accuracy = self._evaluate_rule(rule, x_prune, y_prune)    
-        return rule_accuracy >= 0.5
+        baseline_accuracy = accuracy_score(y_prune, np.zeros(len(y_prune)))
+        return rule_accuracy > baseline_accuracy

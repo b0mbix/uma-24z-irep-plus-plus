@@ -144,6 +144,6 @@ class Ripper:
             return 0
         return accuracy_score(y[covered], np.ones(len(y[covered])))
 
-    def _accept_rule(self, rule, X, y):
-        covered = self._apply_rule(rule, X)
-        return sum(y[covered] == 1) > sum(y[covered] == 0)
+    def _accept_rule(self, rule, x_prune, y_prune):
+        rule_accuracy = self._evaluate_rule(rule, x_prune, y_prune)    
+        return rule_accuracy >= 0.5
