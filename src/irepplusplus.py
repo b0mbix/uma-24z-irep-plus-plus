@@ -11,6 +11,7 @@ class IRepPlusPlus:
         self._test_percentage = prune_percentage
         self._max_conditions_in_rule = max_conditions_in_rule
         self._random_state = random_state
+        self.rules_history = []
 
         self._logger = logging.getLogger(__name__)
         if verbose_level == 2:
@@ -63,6 +64,7 @@ class IRepPlusPlus:
                 bad_rules_count += 1
                 self._logger.warning(f'Bad rule - {pruned_rule} ({bad_rules_count=})')
             iterations += 1
+            self.rules_history.append(self.rule_sets)
         self._logger.debug(f'Ending, {self.rule_sets=}')
 
     def _learn_rule(self, x_original, y_original):
