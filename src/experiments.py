@@ -17,7 +17,7 @@ def compare_models(data):
     print(f'Ripper average accuracy: {sum(ripper_scores) / len(ripper_scores)}')
     print(f'IRep average accuracy: {sum(irep_scores) / len(irep_scores)}')
 
-    with open('results_models_comparison.json', 'w') as f:
+    with open('../results/accuracy/results_models_comparison.json', 'w') as f:
         json.dump({
             'irepplusplus': irepplusplus_scores,
             'ripper': ripper_scores,
@@ -36,7 +36,7 @@ def compare_test_sizes(data):
             scores[test_size].append(run_irepplusplus(data.copy(), i, test_size))
         print(f'Average accuracy for test size {test_size}: {sum(scores[test_size]) / len(scores[test_size])}')
 
-    with open('results_test_sizes.json', 'w') as f:
+    with open('../results/accuracy/results_test_sizes.json', 'w') as f:
         json.dump(scores, f)
 
 
@@ -51,7 +51,7 @@ def compare_prune_sizes(data):
             scores[prune_size].append(run_irepplusplus(data.copy(), i, prune_percentage=prune_size))
         print(f'Average accuracy for prune size {prune_size}: {sum(scores[prune_size]) / len(scores[prune_size])}')
 
-    with open('results_prune_percentages.json', 'w') as f:
+    with open('../results/accuracy/results_prune_percentages.json', 'w') as f:
         json.dump(scores, f)
 
 
@@ -70,7 +70,7 @@ def compare_noises(data):
             scores[noise_level].append(run_irepplusplus(data_with_noises[noise_levels.index(noise_level)], i))
         print(f'Average accuracy for noise level {noise_level}: {sum(scores[noise_level]) / len(scores[noise_level])}')
 
-    with open('results_noises.json', 'w') as f:
+    with open('../results/accuracy/results_noises.json', 'w') as f:
         json.dump(scores, f)
 
 
@@ -89,5 +89,5 @@ def compare_deleted_columns(data):
             scores[number].append(run_irepplusplus(data_without_labels[deleted_columns_numbers.index(number)], i))
         print(f'Average accuracy for deleted columns {number}: {sum(scores[number]) / len(scores[number])}')
 
-    with open('results_deleted_columns.json', 'w') as f:
+    with open('../results/accuracy/results_deleted_columns.json', 'w') as f:
         json.dump(scores, f)
