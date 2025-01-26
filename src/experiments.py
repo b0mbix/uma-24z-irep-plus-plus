@@ -97,3 +97,12 @@ def compare_deleted_columns(data):
 
     with open('../results/accuracy/results_deleted_columns.json', 'w') as f:
         json.dump(scores, f)
+
+
+if __name__ == '__main__':
+    data = read_csv_to_dataframe("../data/processed/breast-cancer.csv")
+    compare_models(data)
+    compare_prune_sizes(data)
+    compare_test_sizes(data)
+    compare_noises(data)
+    compare_deleted_columns(data)
