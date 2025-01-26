@@ -9,9 +9,29 @@ if __name__ == '__main__':
             f'../data/processed/breast-cancer-noise-{noise_level}.csv',
             noise_level
         )
-    # delete_columns_from_data(
-    #     '../data/processed/breast-cancer.csv',
-    #     '../data/processed/breast-cancer-no-label.csv',
-    #     ['label']
-    # )
+    delete_columns_from_data(
+        '../data/processed/breast-cancer.csv',
+        '../data/processed/breast-cancer-no-columns-1.csv',
+        ['concave points_worst']
+    )
+    delete_columns_from_data(
+        '../data/processed/breast-cancer.csv',
+        '../data/processed/breast-cancer-no-columns-3.csv',
+        ['concave points_worst', 'perimeter_worst', 'texture_worst']
+    )
+    delete_columns_from_data(
+        '../data/processed/breast-cancer.csv',
+        '../data/processed/breast-cancer-no-columns-6.csv',
+        ['concave points_worst', 'perimeter_worst', 'texture_worst', 'texture_mean', 'radius_mean', 'area_worst']
+    )
+    delete_columns_from_data(
+        '../data/processed/breast-cancer.csv',
+        '../data/processed/breast-cancer-no-columns-8.csv',
+        ['concave points_worst', 'perimeter_worst', 'texture_worst', 'texture_mean', 'radius_mean', 'area_worst', 'radius_worst', 'concave points_mean']
+    )
+    delete_columns_from_data(
+        '../data/processed/breast-cancer.csv',
+        '../data/processed/breast-cancer-no-columns-12.csv',
+        ['concave points_worst', 'perimeter_worst', 'texture_worst', 'texture_mean', 'radius_mean', 'area_worst', 'radius_worst', 'concave points_mean', 'perimeter_se', 'symmetry_worst', 'smoothness_mean', 'fractal_dimension_mean']
+    )
     print('Data processing complete.')
