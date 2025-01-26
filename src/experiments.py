@@ -61,6 +61,9 @@ def compare_noises(data):
     for noise_level in noise_levels:
         data_with_noises.append(read_csv_to_dataframe(f'../data/processed/breast-cancer-noise-{noise_level}.csv'))
 
+    data_with_noises.append(data)
+    noise_levels.append(0)
+
     scores = {}
     for noise_level in noise_levels:
         scores[noise_level] = []
@@ -79,6 +82,9 @@ def compare_deleted_columns(data):
     deleted_columns_numbers = [1, 3, 6, 8, 12]
     for number in deleted_columns_numbers:
         data_without_labels.append(read_csv_to_dataframe(f'../data/processed/breast-cancer-no-columns-{number}.csv'))
+
+    data_without_labels.append(data)
+    deleted_columns_numbers.append(0)
 
     scores = {}
     for number in deleted_columns_numbers:
