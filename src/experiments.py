@@ -1,4 +1,4 @@
-from get_data import read_csv_to_dataframe
+from prepare_data import read_csv_to_dataframe
 from train_and_predict import run_irepplusplus, run_ripper, run_irep
 import json
 
